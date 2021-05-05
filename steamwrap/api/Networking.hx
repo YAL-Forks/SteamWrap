@@ -19,7 +19,7 @@ class Networking extends SteamBase {
 	 * @param	type	Determines method of delivery and reliability
 	 * @return	Whether sending succeeded.
 	 */
-	public function sendPacket(id:SteamID, bytes:Bytes, size:Int, type:EP2PSend):Int {
+	public function sendPacket(id:SteamID, bytes:Bytes, size:Int, type:EP2PSend):Bool {
 		return SteamWrap_SendPacket(id, bytes, size, cast type);
 	}
 	//private var SteamWrap_SendP2PPacket = Loader.load("SteamWrap_SendP2PPacket", "coiii");
@@ -48,6 +48,12 @@ class Networking extends SteamBase {
 	}
 	private var SteamWrap_GetPacketData = Loader.loadRaw("SteamWrap_GetPacketData", 1);
 	
+	public function getPacketSize():Int {
+		return SteamWrap_GetPacketSize();
+	}
+	private var SteamWrap_GetPacketSize = Loader.loadRaw("SteamWrap_GetPacketSize", 0);
+	
+	
 	/**
 	 * Returns Steam ID of sender of the last received packet.
 	 */
@@ -67,6 +73,11 @@ class Networking extends SteamBase {
 		return SteamWrap_AllowP2PPacketRelay(allow);
 	}
 	private var SteamWrap_AllowP2PPacketRelay = Loader.loadRaw("SteamWrap_AllowP2PPacketRelay", 1);
+	
+	public function getP2PSessionState(remoteID:SteamID):P2PSessionState {
+		return SteamWrap_GetP2PSessionState(remoteID);
+	}
+	private var SteamWrap_GetP2PSessionState = Loader.loadRaw("SteamWrap_GetP2PSessionState", 1);
 	
 	//
 	private function new(appId:Int, customTrace:String->Void) {
@@ -90,4 +101,15 @@ class Networking extends SteamBase {
 	/** Akin to TCP with Nagle's algorithm*/
 	public var RELIABLE_WITH_BUFFERING = 3;
 	
+}
+
+typedef P2PSessionState = {
+	connected:Bool,
+	connecting:Bool,
+	lastError:Int,
+	usingRelay:Bool,
+	bytesQueuedForSend:Int,
+	packetsQueuedForSend:Int,
+	remoteIP:Int,
+	remotePort:Int,
 }

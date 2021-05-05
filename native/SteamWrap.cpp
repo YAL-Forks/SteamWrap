@@ -2167,6 +2167,24 @@ value SteamWrap_AllowP2PPacketRelay(value allow) {
 }
 DEFINE_PRIM(SteamWrap_AllowP2PPacketRelay, 1);
 
+value SteamWrap_GetP2PSessionState(value _remote) {
+	if (!CheckInit()) return val_null;
+	P2PSessionState_t state{};
+	uint64 remote = strtoull(val_string(_remote), NULL, 0);
+	if (!SteamNetworking->GetP2PSessionState(remote, &state)) return val_null;
+	value obj = alloc_empty_object();
+	alloc_field(obj, val_id("connected"), alloc_bool(state.m_bConnectionActive));
+	alloc_field(obj, val_id("connecting"), alloc_bool(state.m_bConnecting));
+	alloc_field(obj, val_id("lastError"), alloc_int(state.m_eP2PSessionError));
+	alloc_field(obj, val_id("usingRelay"), alloc_bool(state.m_bUsingRelay));
+	alloc_field(obj, val_id("bytesQueuedForSend"), alloc_bool(state.m_nBytesQueuedForSend));
+	alloc_field(obj, val_id("packetsQueuedForSend"), alloc_bool(state.m_nPacketsQueuedForSend));
+	alloc_field(obj, val_id("remoteIP"), alloc_int(state.m_nRemoteIP));
+	alloc_field(obj, val_id("remotePort"), alloc_int(state.m_nRemotePort));
+	return obj;
+}
+DEFINE_PRIM(SteamWrap_GetP2PSessionState, 1);
+
 value SteamWrap_ReceivePacket() {
 	uint32 SteamWrap_PacketSizePre = 0;
 	if (SteamNetworking && SteamNetworking->IsP2PPacketAvailable(&SteamWrap_PacketSizePre)) {
