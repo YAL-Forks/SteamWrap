@@ -504,7 +504,7 @@ class Steam
 		var type:String = Std.string(Reflect.field(e, "type"));
 		var success:Bool = (Std.int(Reflect.field(e, "success")) != 0);
 		var obj:Dynamic = Reflect.field(e, "data");
-		var data:String = Std.is(obj, String) ? Std.string(obj) : null;
+		var data:String = Std.isOfType(obj, String) ? Std.string(obj) : null;
 		
 		customTrace("[STEAM] " + type + (success ? " SUCCESS" : " FAIL") + " (" + data + ")");
 		
@@ -629,6 +629,10 @@ class Steam
 			case "LobbyJoinRequested":
 				if (matchmaking.whenLobbyJoinRequested != null) {
 					matchmaking.whenLobbyJoinRequested(obj);
+				}
+			case "P2PSessionRequest":
+				if (networking.whenP2PSessionRequested != null) {
+					networking.whenP2PSessionRequested(obj);
 				}
 			case "LobbyListReceived":
 				if (matchmaking.whenLobbyListReceived != null) {

@@ -168,6 +168,7 @@ static const char* kEventTypeOnLobbyJoined = "LobbyJoined";
 static const char* kEventTypeOnLobbyJoinRequested = "LobbyJoinRequested";
 static const char* kEventTypeOnLobbyCreated = "LobbyCreated";
 static const char* kEventTypeOnLobbyListReceived = "LobbyListReceived";
+static const char* kEventTypeOnP2PSessionRequest = "P2PSessionRequest";
 
 //A simple data structure that holds on to the native 64-bit handles and maps them to regular ints.
 //This is because it is cumbersome to pass back 64-bit values over CFFI, and strictly speaking, the haxe 
@@ -301,6 +302,7 @@ public:
 	STEAM_CALLBACK( CallbackHandler, OnDownloadItem, DownloadItemResult_t, m_CallbackDownloadItemResult );
 	STEAM_CALLBACK( CallbackHandler, OnItemInstalled, ItemInstalled_t, m_CallbackItemInstalled );
 	STEAM_CALLBACK( CallbackHandler, OnLobbyJoinRequested, GameLobbyJoinRequested_t );
+	STEAM_CALLBACK( CallbackHandler, OnP2PSessionRequest, P2PSessionRequest_t);
 	
 	void FindLeaderboard(const char* name);
 	void OnLeaderboardFound( LeaderboardFindResult_t *pResult, bool bIOFailure);
@@ -2131,11 +2133,19 @@ value SteamWrap_GetPacketSize() {
 DEFINE_PRIM(SteamWrap_GetPacketSize, 0);
 
 void* SteamWrap_PacketData = nullptr;
-value SteamWrap_GetPacketData() {
-	if (!CheckInit() || SteamWrap_PacketData == nullptr) return alloc_bool(false);
-	return bytes_to_hx((unsigned char*)SteamWrap_PacketData, SteamWrap_PacketSize);
+value SteamWrap_GetPacketData(value _bytes) {
+	if (!CheckInit() || SteamWrap_PacketData == nullptr) return val_null;
+	if (val_is_null(_bytes)) {
+		return bytes_to_hx((unsigned char*)SteamWrap_PacketData, SteamWrap_PacketSize);
+	} else {
+		auto bytes = getByteData(_bytes);
+		auto len = (int)SteamWrap_PacketSize;
+		if (len > bytes.length) len = bytes.length;
+		memcpy(bytes.data, SteamWrap_PacketData, len);
+		return val_null;
+	}
 }
-DEFINE_PRIM(SteamWrap_GetPacketData, 0);
+DEFINE_PRIM(SteamWrap_GetPacketData, 1);
 
 CSteamID SteamWrap_PacketSender;
 value SteamWrap_GetPacketSender() {
@@ -2143,6 +2153,19 @@ value SteamWrap_GetPacketSender() {
 	return id_to_hx(SteamWrap_PacketSender);
 }
 DEFINE_PRIM(SteamWrap_GetPacketSender, 0);
+
+value SteamWrap_AcceptP2PSessionWithUser(value remoteID) {
+	if (!CheckInit()) return alloc_bool(false);
+	uint64 u64id = strtoull(val_string(remoteID), NULL, 0);
+	return alloc_bool(SteamNetworking->AcceptP2PSessionWithUser(u64id));
+}
+DEFINE_PRIM(SteamWrap_AcceptP2PSessionWithUser, 1);
+
+value SteamWrap_AllowP2PPacketRelay(value allow) {
+	if (!CheckInit()) return alloc_bool(false);
+	return alloc_bool(SteamNetworking->AllowP2PPacketRelay(val_bool(allow)));
+}
+DEFINE_PRIM(SteamWrap_AllowP2PPacketRelay, 1);
 
 value SteamWrap_ReceivePacket() {
 	uint32 SteamWrap_PacketSizePre = 0;
@@ -2366,6 +2389,11 @@ void CallbackHandler::OnLobbyJoinRequested(GameLobbyJoinRequested_t* pResult) {
 	alloc_field(obj, val_id("lobbyID"), id_to_hx(pResult->m_steamIDLobby));
 	alloc_field(obj, val_id("friendID"), id_to_hx(pResult->m_steamIDFriend));
 	SendEvent(Event(kEventTypeOnLobbyJoinRequested, true, obj));
+}
+void CallbackHandler::OnP2PSessionRequest(P2PSessionRequest_t* pResult) {
+	value obj = alloc_empty_object();
+	alloc_field(obj, val_id("remoteID"), id_to_hx(pResult->m_steamIDRemote));
+	SendEvent(Event(kEventTypeOnP2PSessionRequest, true, obj));
 }
 
 #pragma endregion

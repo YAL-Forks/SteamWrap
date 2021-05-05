@@ -19,7 +19,7 @@ class Networking extends SteamBase {
 	 * @param	type	Determines method of delivery and reliability
 	 * @return	Whether sending succeeded.
 	 */
-	public function sendPacket(id:String, bytes:Bytes, size:Int, type:EP2PSend):Int {
+	public function sendPacket(id:SteamID, bytes:Bytes, size:Int, type:EP2PSend):Int {
 		return SteamWrap_SendPacket(id, bytes, size, cast type);
 	}
 	//private var SteamWrap_SendP2PPacket = Loader.load("SteamWrap_SendP2PPacket", "coiii");
@@ -35,20 +35,38 @@ class Networking extends SteamBase {
 	private var SteamWrap_ReceivePacket = Loader.loadRaw("SteamWrap_ReceivePacket", 0);
 	
 	/**
-	 * Returns the data of the last receives packet as Bytes.
+	 * Returns the data of the last received packet as Bytes.
+	 * @param	outBytes	If provided, data will be copied into existing Bytes (up to current size)
 	 */
-	public function getPacketData():Bytes {
-		return Bytes.ofData(SteamWrap_GetPacketData());
+	public function getPacketData(?outBytes:Bytes):Bytes {
+		if (outBytes != null) {
+			SteamWrap_GetPacketData(outBytes);
+			return outBytes;
+		} else {
+			return Bytes.ofData(SteamWrap_GetPacketData(null));
+		}
 	}
-	private var SteamWrap_GetPacketData = Loader.loadRaw("SteamWrap_GetPacketData", 0);
+	private var SteamWrap_GetPacketData = Loader.loadRaw("SteamWrap_GetPacketData", 1);
 	
 	/**
 	 * Returns Steam ID of sender of the last received packet.
 	 */
-	public function getPacketSender():String {
+	public function getPacketSender():SteamID {
 		return SteamWrap_GetPacketSender();
 	}
 	private var SteamWrap_GetPacketSender = Loader.loadRaw("SteamWrap_GetPacketSender", 0);
+	
+	public var whenP2PSessionRequested:{remoteID:SteamID}->Void = null;
+	
+	public function acceptP2PSessionWithUser(remote:SteamID):Bool {
+		return SteamWrap_AcceptP2PSessionWithUser(remote);
+	}
+	private var SteamWrap_AcceptP2PSessionWithUser = Loader.loadRaw("SteamWrap_AcceptP2PSessionWithUser", 1);
+	
+	public function allowP2PPacketRelay(allow:Bool):Bool {
+		return SteamWrap_AllowP2PPacketRelay(allow);
+	}
+	private var SteamWrap_AllowP2PPacketRelay = Loader.loadRaw("SteamWrap_AllowP2PPacketRelay", 1);
 	
 	//
 	private function new(appId:Int, customTrace:String->Void) {
